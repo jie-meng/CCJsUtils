@@ -35,7 +35,10 @@ let HelloWorldLayer = cc.Layer.extend({
         this.addChild(this.sprite, 0);
         
         let animation = display.createAnimation({ image: res.ImgEdgar, width: 320, height: 320 }, [cc.p(0, 0), cc.p(1, 0)]);
-        display.spriteRunAnimationForever(this.sprite, animation);
+        display.setAnimationCache('edgar', animation);
+        
+        display.spriteRunAnimationForever(this.sprite, display.getAnimationCache('edgar'));
+        this.sprite.setScale(0.4, 0.4);
         
         return true;
     }

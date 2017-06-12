@@ -6,10 +6,6 @@ const display = {
             cc.textureCache.addImageAsync(imageFilename, callback);
         }
     },
-    
-    _newSpriteFrame: (texture, rect, rotated, offset, originalSize) => {
-        return cc.SpriteFrame.createWithTexture(texture, rect, rotated, offset, originalSize)
-    },
 
     _newAnimation: (frames, time) => {
         let count = frames.length;
@@ -17,6 +13,10 @@ const display = {
         time = time || 1.0 / count;
         
         return cc.Animation.createWithAnimationFrames(frames, time);
+    },
+    
+    _newSpriteFrame: (texture, rect, rotated, offset, originalSize) => {
+        return cc.SpriteFrame.createWithTexture(texture, rect, rotated, offset, originalSize)
     },
     
     spriteRunAnimationForever: (sprite, animation) => {
@@ -76,7 +76,19 @@ const display = {
         });
         
         return display._newAnimation(frames);
-    }
+    },
+    
+    setAnimationCache: (name, animation) => {
+        cc.animationCache.addAnimation(animation, name);
+    },
+
+    getAnimationCache: (name) => {
+        return cc.animationCache.getAnimation(name);
+    },
+
+    removeAnimationCache: (name) => {
+        cc.animationCache.removeAnimation(name);
+    },
 };
 
 export default display;
