@@ -1,5 +1,5 @@
 const display = {
-    loadImage: (imageFilename, callback) => {
+    _loadImage: (imageFilename, callback) => {
         if (!callback) {
             return cc.textureCache.addImage(imageFilename);
         } else {
@@ -7,28 +7,16 @@ const display = {
         }
     },
     
-    newSpriteFrame: (texture, rect, rotated, offset, originalSize) => {
+    _newSpriteFrame: (texture, rect, rotated, offset, originalSize) => {
         return cc.SpriteFrame.createWithTexture(texture, rect, rotated, offset, originalSize)
     },
 
-    newAnimation: (frames, time) => {
+    _newAnimation: (frames, time) => {
         let count = frames.length;
         cc.assert(count > 0, "display.newAnimation() - invalid frames");
         time = time || 1.0 / count;
         
         return cc.Animation.createWithAnimationFrames(frames, time);
-    },
-    
-    setAnimationCache: (name, animation) => {
-        cc.AnimationCache.getInstance().addAnimation(animation, name);
-    },
-    
-    getAnimationCache: (name) => {
-        cc.AnimationCache.getInstance().getAnimation(name);
-    },
-    
-    removeAnimationCache: (name) => {
-        cc.AnimationCache.getInstance().removeAnimation(name);
     },
     
     spriteRunAnimationForever: (sprite, animation) => {
@@ -75,6 +63,19 @@ const display = {
         }
         sprite.runAction(action);
         return action;
+    },
+    
+    createAnimation: (imageInfo, animationSeq) => {
+        let texture = display._loadImage(imageInfo.image);
+        let width = texture.getPixelsWide();
+        let height = texture.getPixelsHigh();
+        
+        let frames = [];
+        _.forEach(animationSeq, (s) => {
+            frames.push(display._newSpriteFrame(texture, cc.rect(imageInfo.width * s.x, imageInfo.height * s.y, imageInfo.width, imageInfo.height)));
+        });
+        
+        return display._newAnimation(frames);
     }
 };
 
