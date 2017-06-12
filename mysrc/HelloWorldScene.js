@@ -1,4 +1,5 @@
 import res from 'resource';
+import display from 'utils/display';
 
 let HelloWorldLayer = cc.Layer.extend({
     sprite:null,
@@ -30,8 +31,24 @@ let HelloWorldLayer = cc.Layer.extend({
             x: size.width / 2,
             y: size.height / 2
         });
+        
         this.addChild(this.sprite, 0);
-
+        
+        let texture = display.loadImage(res.ImgEdgar);
+        let width = texture.getPixelsWide();
+        let height = texture.getPixelsHigh();
+        
+        let frames = [];
+        let f0 = display.newSpriteFrame(texture, cc.rect(0, 0, 320, 320));
+        let f1 = display.newSpriteFrame(texture, cc.rect(320, 0, 320, 320));
+        frames.push(f0);
+        frames.push(f1);
+        
+        let animation = display.newAnimation(frames);
+        
+        //display.spriteRunAnimationForever(this.sprite, animation);
+        display.spriteRunAnimationOnce(this.sprite, animation);
+        
         return true;
     }
 });
@@ -44,5 +61,27 @@ let HelloWorldScene = cc.Scene.extend({
     }
 });
 
-// module.exports = HelloWorldScene;
 export default HelloWorldScene;
+
+//function AnimationCacheHoster:addCache()
+//    for k, v in pairs(self.tb_) do
+//        -- load image
+//        local texture = display.loadImage(v.fn)
+//        local frameWidth = texture:getPixelsWide() / v.cnt
+//        local frameHeight = texture:getPixelsHigh()
+
+//        -- create sprite frame based on image
+//        local frames = {}
+//        for i = v.fr-1, v.t-1 do
+//            local frame = display.newSpriteFrame(texture, cc.rect(frameWidth * i, 0, frameWidth, frameHeight))
+//            frames[#frames + 1] = frame
+//        end
+
+//        -- create animation
+//        local animation = display.newAnimation(frames, v.f)
+//        -- caching animation
+//        display.setAnimationCache(v.key, animation)
+//    end
+    
+//    return self
+//end
