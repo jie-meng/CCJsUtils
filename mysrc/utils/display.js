@@ -65,17 +65,19 @@ const display = {
         return action;
     },
     
-    createAnimation: (imageInfo, animationSeq) => {
+    createAnimation: (imageInfo, animationSeq, time) => {
         let texture = display._loadImage(imageInfo.image);
         let width = texture.getPixelsWide();
         let height = texture.getPixelsHigh();
+        let w = width / imageInfo.cx;
+        let h = height / imageInfo.cy;
         
         let frames = [];
         _.forEach(animationSeq, (s) => {
-            frames.push(display._newSpriteFrame(texture, cc.rect(imageInfo.width * s.x, imageInfo.height * s.y, imageInfo.width, imageInfo.height)));
+            frames.push(display._newSpriteFrame(texture, cc.rect(w * s.x, h * s.y, w, h)));
         });
         
-        return display._newAnimation(frames);
+        return display._newAnimation(frames, time);
     },
     
     setAnimationCache: (name, animation) => {
