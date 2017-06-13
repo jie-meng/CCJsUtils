@@ -34,8 +34,9 @@ let HelloWorldLayer = cc.Layer.extend({
         
         this.addChild(this.sprite, 0);
         
-        let animation = display.createAnimation({ image: res.ImgBahamute, cx: 4, cy: 4 }, [cc.p(0, 0), cc.p(1, 0), cc.p(2, 0), cc.p(3, 0)], 0.1);
+        let animation = display.createAnimation({ image: res.ImgBahamute, cx: 4, cy: 4 }, [cc.p(0, 1), cc.p(1, 1), cc.p(2, 1), cc.p(3, 1)], 0.2);
         display.setAnimationCache('edgar', animation);
+        this.setScale(2, 2);
         
         display.spriteRunAnimationForever(this.sprite, display.getAnimationCache('edgar'));
         
