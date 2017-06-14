@@ -1,8 +1,11 @@
 import res from 'resource';
 import display from 'utils/display';
+import Timer from 'utils/timer/Timer';
 
 let HelloWorldLayer = cc.Layer.extend({
-    sprite:null,
+    __sprite: null,
+    _timer: null,
+    
     ctor:function () {
         //////////////////////////////
         // 1. super init first
@@ -13,6 +16,10 @@ let HelloWorldLayer = cc.Layer.extend({
         //    you may modify it.
         // ask the window size
         let size = cc.winSize;
+        
+        this._timer = Timer.create(1, 0, 15, (o, times) => {
+            cc.log('test');
+        });
 
         /////////////////////////////
         // 3. add your codes below...
@@ -26,22 +33,29 @@ let HelloWorldLayer = cc.Layer.extend({
         this.addChild(helloLabel, 5);
 
         // add "HelloWorld" splash screen"
-        this.sprite = new cc.Sprite(res.HelloWorld_png);
-        this.sprite.attr({
+        this._sprite = new cc.Sprite(res.HelloWorld_png);
+        this._sprite.attr({
             x: size.width / 2,
             y: size.height / 2
         });
         
-        this.addChild(this.sprite, 0);
+        this.addChild(this._sprite, 0);
         
         let animation = display.createAnimation({ image: res.ImgBahamute, cx: 4, cy: 4 }, [cc.p(0, 1), cc.p(1, 1), cc.p(2, 1), cc.p(3, 1)], 0.2);
         display.setAnimationCache('edgar', animation);
         this.setScale(2, 2);
         
-        display.spriteRunAnimationForever(this.sprite, display.getAnimationCache('edgar'));
+        display.spriteRunAnimationForever(this._sprite, display.getAnimationCache('edgar'));
+        
+        this.scheduleUpdate();
         
         return true;
-    }
+    },
+    
+    update: function (dt) {
+        this._super(dt);
+        this._timer.passTime(dt);
+    },
 });
 
 let HelloWorldScene = cc.Scene.extend({
