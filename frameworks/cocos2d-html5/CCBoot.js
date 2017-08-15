@@ -583,6 +583,33 @@ cc.path = /** @lends cc.path# */{
  * @see cc.loader
  */
 
+var imagePool = {
+    _pool: new Array(10),
+    _MAX: 10,
+    _smallImg: "data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=",
+
+    count: 0,
+    get: function () {
+        if (this.count > 0) {
+            this.count--;
+            var result = this._pool[this.count];
+            this._pool[this.count] = null;
+            return result;
+        }
+        else {
+            return new Image();
+        }
+    },
+    put: function (img) {
+        var pool = this._pool;
+        if (img instanceof HTMLImageElement && this.count < this._MAX) {
+            img.src = this._smallImg;
+            pool[this.count] = img;
+            this.count++;
+        }
+    }
+};
+
 /**
  * Singleton instance of cc.Loader.
  * @name cc.loader
@@ -867,7 +894,7 @@ cc.loader = (function () {
          * @param {function} callback
          * @returns {Image}
          */
-        loadImg: function (url, option, callback) {
+        loadImg: function (url, option, callback, img) {
             var opt = {
                 isCrossOrigin: true
             };
@@ -876,10 +903,10 @@ cc.loader = (function () {
             else if (option !== undefined)
                 callback = option;
 
-            var img = this.getRes(url);
-            if (img) {
-                callback && callback(null, img);
-                return img;
+            var texture = this.getRes(url);
+            if (texture) {
+                callback && callback(null, texture);
+                return null;
             }
 
             var queue = _queue[url];
@@ -888,17 +915,15 @@ cc.loader = (function () {
                 return queue.img;
             }
 
-            img = new Image();
+            img = img || imagePool.get();
             if (opt.isCrossOrigin && location.origin !== "file://")
                 img.crossOrigin = "Anonymous";
+            else
+                img.crossOrigin = null;
 
             var loadCallback = function () {
                 this.removeEventListener('load', loadCallback, false);
                 this.removeEventListener('error', errorCallback, false);
-
-                if (!_urlRegExp.test(url)) {
-                    cc.loader.cache[url] = img;
-                }
 
                 var queue = _queue[url];
                 if (queue) {
@@ -912,6 +937,10 @@ cc.loader = (function () {
                     queue.img = null;
                     delete _queue[url];
                 }
+
+                if (cc._renderType === cc.game.RENDER_TYPE_WEBGL) {
+                    imagePool.put(img);
+                }
             };
 
             var self = this;
@@ -919,10 +948,10 @@ cc.loader = (function () {
                 this.removeEventListener('load', loadCallback, false);
                 this.removeEventListener('error', errorCallback, false);
 
-                if (img.crossOrigin && img.crossOrigin.toLowerCase() === "anonymous") {
+                if (window.location.protocol !== 'https:' && img.crossOrigin && img.crossOrigin.toLowerCase() === "anonymous") {
                     opt.isCrossOrigin = false;
                     self.release(url);
-                    cc.loader.loadImg(url, opt, callback);
+                    cc.loader.loadImg(url, opt, callback, img);
                 } else {
                     var queue = _queue[url];
                     if (queue) {
@@ -935,6 +964,10 @@ cc.loader = (function () {
                         }
                         queue.img = null;
                         delete _queue[url];
+                    }
+
+                    if (cc._renderType === cc.game.RENDER_TYPE_WEBGL) {
+                        imagePool.put(img);
                     }
                 }
             };
@@ -1758,8 +1791,8 @@ var _initSys = function () {
     sys.browserVersion = "";
     /* Determine the browser version number */
     (function(){
-        var versionReg1 = /(micromessenger|mqqbrowser|qq|maxthon|baidu|sogou)(mobile)?(browser)?\/?([\d.]+)/i;
-        var versionReg2 = /(msie |rv:|firefox|chrome|ucbrowser|oupeng|opera|opr|safari|miui)(mobile)?(browser)?\/?([\d.]+)/i;
+        var versionReg1 = /(mqqbrowser|micromessenger|sogou|qzone|liebao|maxthon|mxbrowser|baidu)(mobile)?(browser)?\/?([\d.]+)/i;
+        var versionReg2 = /(msie |rv:|firefox|chrome|ucbrowser|qq|oupeng|opera|opr|safari|miui)(mobile)?(browser)?\/?([\d.]+)/i;
         var tmp = ua.match(versionReg1);
         if(!tmp) tmp = ua.match(versionReg2);
         sys.browserVersion = tmp ? tmp[4] : "";
@@ -2669,7 +2702,7 @@ cc.game = /** @lends cc.game# */{
             }
             width = width || element.clientWidth;
             height = height || element.clientHeight;
-            this.canvas = cc._canvas = localCanvas = document.createElement("CANVAS");
+            this.canvas = cc._canvas = localCanvas = cc.$(document.createElement("CANVAS"));
             this.container = cc.container = localContainer = document.createElement("DIV");
             element.appendChild(localContainer);
         }

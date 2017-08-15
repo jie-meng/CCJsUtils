@@ -219,6 +219,7 @@ Director::~Director(void)
     CC_SAFE_RELEASE(_eventBeforeUpdate);
     CC_SAFE_RELEASE(_eventAfterUpdate);
     CC_SAFE_RELEASE(_eventAfterDraw);
+    CC_SAFE_RELEASE(_eventBeforeDraw);
     CC_SAFE_RELEASE(_eventAfterVisit);
     CC_SAFE_RELEASE(_eventProjectionChanged);
     CC_SAFE_RELEASE(_eventResetDirector);
@@ -337,7 +338,9 @@ void Director::drawScene()
     
     if (_displayStats)
     {
+#if !CC_STRIP_FPS
         showStats();
+#endif
     }
     
     _renderer->render();
@@ -356,14 +359,14 @@ void Director::drawScene()
 
     if (_displayStats)
     {
+#if !CC_STRIP_FPS
         calculateMPF();
+#endif
     }
 }
 
 void Director::calculateDeltaTime()
 {
-    auto now = std::chrono::steady_clock::now();
-
     // new delta time. Re-fixed issue #1277
     if (_nextDeltaTimeZero)
     {
@@ -375,6 +378,7 @@ void Director::calculateDeltaTime()
         // delta time may passed by invoke mainLoop(dt)
         if (!_deltaTimePassedByCaller)
         {
+            auto now = std::chrono::steady_clock::now();
             _deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(now - _lastUpdate).count() / 1000000.0f;
             _lastUpdate = now;
         }
@@ -1257,6 +1261,8 @@ void Director::updateFrameRate()
     _frameRate = 1.0f / _deltaTime;
 }
 
+#if !CC_STRIP_FPS
+
 // display the FPS using a LabelAtlas
 // updates the FPS every frame
 void Director::showStats()
@@ -1314,11 +1320,7 @@ void Director::calculateMPF()
     static float prevSecondsPerFrame = 0;
     static const float MPF_FILTER = 0.10f;
 
-    auto now = std::chrono::steady_clock::now();
-    
-    _secondsPerFrame = std::chrono::duration_cast<std::chrono::microseconds>(now - _lastUpdate).count() / 1000000.0f;
-
-    _secondsPerFrame = _secondsPerFrame * MPF_FILTER + (1-MPF_FILTER) * prevSecondsPerFrame;
+    _secondsPerFrame = _deltaTime * MPF_FILTER + (1-MPF_FILTER) * prevSecondsPerFrame;
     prevSecondsPerFrame = _secondsPerFrame;
 }
 
@@ -1401,6 +1403,8 @@ void Director::createStatsLabel()
     _drawnBatchesLabel->setPosition(Vec2(0, height_spacing*1) + CC_DIRECTOR_STATS_POSITION);
     _FPSLabel->setPosition(Vec2(0, height_spacing*0)+CC_DIRECTOR_STATS_POSITION);
 }
+
+#endif // #if !CC_STRIP_FPS
 
 void Director::setContentScaleFactor(float scaleFactor)
 {

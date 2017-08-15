@@ -37,7 +37,7 @@ cc.DENSITYDPI_LOW = "low-dpi";
 
 var __BrowserGetter = {
     init: function () {
-        this.html = document.getElementsByTagName("html")[0];
+        this.html = document.documentElement;
     },
     availWidth: function (frame) {
         if (!frame || frame === this.html)
@@ -66,25 +66,11 @@ if (cc.sys.os === cc.sys.OS_IOS) // All browsers are WebView
 switch (__BrowserGetter.adaptationType) {
     case cc.sys.BROWSER_TYPE_SAFARI:
         __BrowserGetter.meta["minimal-ui"] = "true";
-        __BrowserGetter.availWidth = function (frame) {
-            return frame.clientWidth;
-        };
-        __BrowserGetter.availHeight = function (frame) {
-            return frame.clientHeight;
-        };
         break;
     case cc.sys.BROWSER_TYPE_CHROME:
         __BrowserGetter.__defineGetter__("target-densitydpi", function () {
             return cc.view._targetDensityDPI;
         });
-    case cc.sys.BROWSER_TYPE_SOUGOU:
-    case cc.sys.BROWSER_TYPE_UC:
-        __BrowserGetter.availWidth = function (frame) {
-            return frame.clientWidth;
-        };
-        __BrowserGetter.availHeight = function (frame) {
-            return frame.clientHeight;
-        };
         break;
     case cc.sys.BROWSER_TYPE_MIUI:
         __BrowserGetter.init = function (view) {
@@ -198,6 +184,10 @@ cc.EGLView = cc.Class.extend(/** @lends cc.view# */{
         _t._rpFixedWidth = new cc.ResolutionPolicy(_strategyer.EQUAL_TO_FRAME, _strategy.FIXED_WIDTH);
 
         _t._targetDensityDPI = cc.DENSITYDPI_HIGH;
+
+        if (sys.isMobile) {
+            window.addEventListener('orientationchange', this._orientationChange);
+        }
     },
 
     // Resize helper functions
@@ -207,6 +197,9 @@ cc.EGLView = cc.Class.extend(/** @lends cc.view# */{
             view = this;
         } else {
             view = cc.view;
+        }
+        if (view._orientationChanging) {
+            return;
         }
 
         // Check frame size changed or not
@@ -243,7 +236,13 @@ cc.EGLView = cc.Class.extend(/** @lends cc.view# */{
 
     _orientationChange: function () {
         cc.view._orientationChanging = true;
-        cc.view._resizeEvent();
+        if (cc.sys.isMobile) {
+            cc.game.container.style.display = "none";
+        }
+        setTimeout(function () {
+            cc.view._orientationChanging = false;
+            cc.view._resizeEvent();
+        }, 300);
     },
 
     /**
@@ -281,14 +280,12 @@ cc.EGLView = cc.Class.extend(/** @lends cc.view# */{
             if (!this.__resizeWithBrowserSize) {
                 this.__resizeWithBrowserSize = true;
                 window.addEventListener('resize', this._resizeEvent);
-                window.addEventListener('orientationchange', this._orientationChange);
             }
         } else {
             //disable
             if (this.__resizeWithBrowserSize) {
                 this.__resizeWithBrowserSize = false;
                 window.removeEventListener('resize', this._resizeEvent);
-                window.removeEventListener('orientationchange', this._orientationChange);
             }
         }
     },
@@ -318,9 +315,11 @@ cc.EGLView = cc.Class.extend(/** @lends cc.view# */{
         orientation = orientation & cc.ORIENTATION_AUTO;
         if (orientation && this._orientation !== orientation) {
             this._orientation = orientation;
-            var designWidth = this._originalDesignResolutionSize.width;
-            var designHeight = this._originalDesignResolutionSize.height;
-            this.setDesignResolutionSize(designWidth, designHeight, this._resolutionPolicy);
+            if (this._resolutionPolicy) {
+                var designWidth = this._originalDesignResolutionSize.width;
+                var designHeight = this._originalDesignResolutionSize.height;
+                this.setDesignResolutionSize(designWidth, designHeight, this._resolutionPolicy);
+            }
         }
     },
 
@@ -342,7 +341,7 @@ cc.EGLView = cc.Class.extend(/** @lends cc.view# */{
         var h = __BrowserGetter.availHeight(this._frame);
         var isLandscape = w >= h;
 
-        if (!this._orientationChanging || !cc.sys.isMobile ||
+        if (!cc.sys.isMobile ||
             (isLandscape && this._orientation & cc.ORIENTATION_LANDSCAPE) ||
             (!isLandscape && this._orientation & cc.ORIENTATION_PORTRAIT)) {
             locFrameSize.width = w;
@@ -359,11 +358,6 @@ cc.EGLView = cc.Class.extend(/** @lends cc.view# */{
             cc.container.style['-webkit-transform-origin'] = '0px 0px 0px';
             cc.container.style.transformOrigin = '0px 0px 0px';
             this._isRotated = true;
-        }
-        if (this._orientationChanging) {
-            setTimeout(function () {
-                cc.view._orientationChanging = false;
-            }, 1000);
         }
     },
 
@@ -577,15 +571,8 @@ cc.EGLView = cc.Class.extend(/** @lends cc.view# */{
         this._frameSize.height = height;
         this._frame.style.width = width + "px";
         this._frame.style.height = height + "px";
-        //this.centerWindow();
         this._resizeEvent();
         cc.director.setProjection(cc.director.getProjection());
-    },
-
-    /**
-     * Empty function
-     */
-    centerWindow: function () {
     },
 
     /**
@@ -695,8 +682,7 @@ cc.EGLView = cc.Class.extend(/** @lends cc.view# */{
         if (cc.sys.isMobile)
             this._adjustViewportMeta();
 
-        // Permit to re-detect the orientation of device.
-        this._orientationChanging = true;
+        // If resizing, then frame size is already initialized, this logic should be improved
         if (!this._resizing)
             this._initFrameSize();
 
@@ -850,13 +836,13 @@ cc.EGLView = cc.Class.extend(/** @lends cc.view# */{
             var boxArr = gl.getParameter(gl.SCISSOR_BOX);
             _scissorRect = cc.rect(boxArr[0], boxArr[1], boxArr[2], boxArr[3]);
         }
-        var scaleX = this._scaleX;
-        var scaleY = this._scaleY;
+        var scaleXFactor = 1 / this._scaleX;
+        var scaleYFactor = 1 / this._scaleY;
         return cc.rect(
-            (_scissorRect.x - this._viewPortRect.x) / scaleX,
-            (_scissorRect.y - this._viewPortRect.y) / scaleY,
-            _scissorRect.width / scaleX,
-            _scissorRect.height / scaleY
+            (_scissorRect.x - this._viewPortRect.x) * scaleXFactor,
+            (_scissorRect.y - this._viewPortRect.y) * scaleYFactor,
+            _scissorRect.width * scaleXFactor,
+            _scissorRect.height * scaleYFactor
         );
     },
 
@@ -1106,7 +1092,7 @@ cc.ContentStrategy = cc.Class.extend(/** @lends cc.ContentStrategy# */{
             this._setupContainer(view, view._frameSize.width, view._frameSize.height);
             // Setup container's margin and padding
             if (view._isRotated) {
-                containerStyle.marginLeft = frameH + 'px';
+                containerStyle.margin = '0 0 0 ' + frameH + 'px';
             }
             else {
                 containerStyle.margin = '0px';
@@ -1136,7 +1122,7 @@ cc.ContentStrategy = cc.Class.extend(/** @lends cc.ContentStrategy# */{
             this._setupContainer(view, containerW, containerH);
             // Setup container's margin and padding
             if (view._isRotated) {
-                containerStyle.marginLeft = frameH + 'px';
+                containerStyle.margin = '0 0 0 ' + frameH + 'px';
             }
             else {
                 containerStyle.margin = '0px';
