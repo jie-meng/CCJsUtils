@@ -59,6 +59,9 @@ gdb.setup
 publish/
 /node_modules/
 frameworks/cocos2d-x/tools/simulator/libsimulator/proj.ios_mac/build/
+frameworks/cocos2d-x/cocos/platform/android/libcocos2dx/build/
+frameworks/cocos2d-x/cocos/scripting/js-bindings/proj.ios_mac/build/
+frameworks/runtime-src/proj.android-studio/app/.externalNativeBuild/
 
 # project files
 *.suo
