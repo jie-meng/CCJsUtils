@@ -18,8 +18,7 @@ const display = {
     _newSpriteFrame: (texture, rect, rotated, offset, originalSize) => {
         rotated = rotated || false; 
         offset = offset || cc.p(0, 0);
-        originalSize = originalSize || rect
-        
+        originalSize = originalSize || rect;
         return cc.SpriteFrame.createWithTexture(texture, rect, rotated, offset, originalSize)
     },
     
